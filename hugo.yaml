@@ -1,7 +1,7 @@
 baseURL: https://observerw.github.io/
 canonifyURLs: true
-languageCode: en-us
-title: My New Hugo Site
+languageCode: zh-cn
+title: oldspaper
 theme: ['PaperMod']
 
 markup:
@@ -22,3 +22,11 @@ markup:
         enable: true
 params:
   math: true
+  comments: true
+  homeInfoParams:
+    Title: 对酒当歌 人生几何
+    Content: 譬如朝露 去日苦多
+
+  socialIcons: # optional
+    - name: "github"
+      url: "https://github.com/observerw"
