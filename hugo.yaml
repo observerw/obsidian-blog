@@ -1,4 +1,5 @@
 baseURL: https://observerw.github.io/
+canonifyURLs: true
 languageCode: en-us
 title: My New Hugo Site
 theme: ['PaperMod']
