@@ -1,4 +1,4 @@
-baseURL: https://example.org/
+baseURL: https://observerw.github.io/obsidian-blog/
 languageCode: en-us
 title: My New Hugo Site
 theme: ['PaperMod']
