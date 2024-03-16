@@ -1,8 +1,8 @@
 ---
 created: 2023-10-13T12:51
-updated: 2024-03-16T09:14
+updated: 2024-03-16T15:12
 share: true
-draft: true
+draft: false
 title: Obsidian个人配置汇总
 tags:
   - "#obsidian"
