@@ -1,5 +1,4 @@
 baseURL: https://observerw.github.io/
-canonifyURLs: true
 languageCode: zh-cn
 title: oldspaper
 theme: ['PaperMod']
