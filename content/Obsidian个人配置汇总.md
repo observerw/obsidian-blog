@@ -117,10 +117,10 @@ aliases: []
 topics: []
 ---
 <%* 
-Let title = tp. File. Title
-If (title.StartsWith ("未命名")) {
-	Title = await tp.System.Prompt ("文件名：")
-	Await tp.File.Rename (title)
+let title = tp.file.title
+if (title.startsWith("未命名")) {
+	title = await tp.system.prompt("文件名：")
+	await tp.file.rename(title)
 }
 -%>
 
