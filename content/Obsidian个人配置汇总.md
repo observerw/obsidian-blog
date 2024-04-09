@@ -20,7 +20,9 @@ Border theme
 
 # 学术
 
-使用 ob 来做文献记录和学术写作都是很常见的需求。我使用 zotero 来进行文献的管理，网上搜索“Obsidian + zotero 联动”会得到一大堆结果，但通常会比较麻烦；好在目前已经有了一个现代化的解决方案：**zotlit**，这个插件基本上可称观止，所有的需求该插件都满足了。
+使用 ob 来做文献记录和学术写作都是很常见的需求。我使用 zotero 来进行文献的管理，网上搜索“Obsidian + zotero 联动”会得到一大堆结果，但通常会比较麻烦；好在目前已经有了一个现代化的解决方案：**zotlit**，这个插件基本上可称观止，所有的需求该插件都满足了：
+
+![[2024-04-09-09.31.46.png]]
 
 如下是我的文献笔记模板 `zt-note.eta.md`，诸位随意取用，也请根据自己的需求修改。
 
@@ -148,15 +150,25 @@ if (title.startsWith("未命名")) {
 
 ## 子话题
 
-
+```dataview
+TABLE WITHOUT ID 
+choice(title, link(file.link, title), file.link) as title, topics, TLDR
+where contains(topics, [[]])
+```
 
 ## 相关话题
 
 ````
 
+![[Pasted image 20240409093448.png]]
+
+![[2024-04-09-09.34.12.png]]
+
 ## 阅读
 
 使用名为 PDF++ 的插件可以极大增强在 ob 中进行 pdf 阅读批注的体验。
+
+![[2024-04-09-09.28.52.png]]
 
 ## 其他
 
