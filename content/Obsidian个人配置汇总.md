@@ -10,21 +10,21 @@ Border theme
 
 ![[截屏2024-04-08 23.34.48.png]]
 
-- 想要比较美观的半透明效果，主要是要设置 translucent 属性为全透明：
+想要比较美观的半透明效果，主要是要设置 translucent 属性为全透明：
 
-  ```json
+```json
 {
 	"Appearance-light@@workspace-background-translucent@@light": "#FFFFFF00"
 }
-  ```
+```
 
-- 开启卡片布局：
+开启卡片布局：
   
-  ```json
-  {
-  	"Appearance-light@@card-layout-open-light": true
-  }
-  ```
+```json
+{
+	"Appearance-light@@card-layout-open-light": true
+}
+```
 # 学术
 
 使用 ob 来做文献记录和学术写作都是很常见的需求。我使用 zotero 来进行文献的管理，网上搜索“Obsidian + zotero 联动”会得到一大堆结果，但通常会比较麻烦；好在目前已经有了一个现代化的解决方案：**zotlit**，这个插件基本上可称观止，所有的需求该插件都满足了：
