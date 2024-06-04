@@ -6,7 +6,7 @@ draft: false
 ---
 # 外观
 
-使用了名为 **Border theme**的主题：
+使用了名为 **Border theme**的主题： 
 
 ![[截屏2024-04-08 23.34.48.png]]
 
