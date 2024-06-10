@@ -165,8 +165,8 @@ dependencies:
     specifier: ^6.0.1
     version: 6.0.1
   workerpool:
-    specifier: ^9.1.0
-    version: 9.1.1
+    specifier: ^9.1.2
+    version: 9.1.2
   ws:
     specifier: ^8.15.1
     version: 8.16.0
@@ -3750,8 +3750,8 @@ packages:
     resolution: {integrity: sha512-Gd9+TUn5nXdwj/hFsPVx5cuHHiF5Bwuc30jZ4+ronF1qHK5O7HD0sgmXWSEgwKquT3ClLoKPVbO6qGwVwLzvAw==}
     dev: false
 
-  /workerpool@9.1.1:
-    resolution: {integrity: sha512-EFoFTSEo9m4V4wNrwzVRjxnf/E/oBpOzcI/R5CIugJhl9RsCiq525rszo4AtqcjQQoqFdu2E3H82AnbtpaQHvg==}
+  /workerpool@9.1.2:
+    resolution: {integrity: sha512-5wZwyy5lcqrakQQcjaYQgVCbMR3djwIFWXuD2EGk/o/9bL3bd2kRGNwF74Bhcf1CIkAIwoOMG82EVnA5JmVVNw==}
     dev: false
 
   /wrap-ansi@7.0.0:
