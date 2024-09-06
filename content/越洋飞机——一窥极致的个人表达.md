@@ -1,7 +1,8 @@
 ---
 title: 
 aliases: 
-tags: 
+tags:
+  - 音乐
 draft: true
 ---
 
