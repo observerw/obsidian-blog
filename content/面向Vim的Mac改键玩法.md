@@ -2,7 +2,7 @@
 title: 
 aliases: 
 tags: 
-draft: true
+draft: false
 ---
 # TLDR
 
