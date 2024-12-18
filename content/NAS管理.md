@@ -61,5 +61,10 @@ thin_pool_autoextend_percent = 20
 ```
 
 该两项设置代表了当 thin pool 的容量占用达到了 80%时，将自动扩容 20%。
+
+# 数据备份
+
+
+
 # 相关文章
 
