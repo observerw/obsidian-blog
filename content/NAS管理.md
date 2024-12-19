@@ -41,15 +41,26 @@ sudo vgcreate resource /dev/sd{b,c,d}
 随后在每个 VG Group 上创建相应的 thin pool：
 
 ```bash
-sudo lvcreate -c 64K -L 1024G -T data/pool
-sudo lvcreate -c 64K -L 1024G -T resource/pool
+sudo lvcreate -c 64K -L 4T -T data/pool
+sudo lvcreate --stripes 3 --stripesize 128 -c 128K -L 10T -T resource/pool
 ```
 
 其中：
 
+- `--stripes 3` 指定使用 3 个条带设备读写；
 -  `-c 64K` 指定了分块大小为 `64KB`，否则会显示 `Pool zeroing and 512,00 KiB large chunk size slows down thin provisioning.`；
 -  `-L 1024G` 指定了初始大小为 `1T`。Thin pool 是在物理空间中创建的，所以必须指定一个大小；但由于 thin pool 有[[#Thin Pool 自动扩容|自动扩容机制]]，所以初始大小无所谓；
 - `-T data/pool` 指定了在 `data` VG group 下创建名为 `pool` 的逻辑磁盘，也即 thin pool；
+
+随后即可在对应的 `pool` 上创建任意容量大小的 LV：
+
+```bash
+sudo lvcreate -V 21T -T resource/pool -n public
+```
+
+其中：
+
+- `-V 21T` 指定虚拟大小为 `21TB`，远大于
 
 # Thin Pool 自动扩容
 
