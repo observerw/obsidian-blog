@@ -60,7 +60,9 @@ sudo lvcreate -V 21T -T resource/pool -n public
 
 其中：
 
-- `-V 21T` 指定虚拟大小为 `21TB`，远大于
+- `-V 21T` 指定虚拟大小为 `21TB`，远大于所在 `pool` 的容量；
+
+
 
 # Thin Pool 自动扩容
 
