@@ -52,7 +52,7 @@ sudo lvcreate --stripes 3 --stripesize 128 -c 128K -L 10T -T resource/pool
 -  `-L 1024G` 指定了初始大小为 `1T`。Thin pool 是在物理空间中创建的，所以必须指定一个大小；但由于 thin pool 有[[#Thin Pool 自动扩容|自动扩容机制]]，所以初始大小无所谓；
 - `-T data/pool` 指定了在 `data` VG group 下创建名为 `pool` 的逻辑磁盘，也即 thin pool；
 
-随后即可在对应的 `pool` 上创建任意容量大小的 LV：
+随后即可在对应的 `pool` 上创建任意容量大小的 LV。先创建 `public` 磁盘：
 
 ```bash
 sudo lvcreate -V 21T -T resource/pool -n public
@@ -61,6 +61,19 @@ sudo lvcreate -V 21T -T resource/pool -n public
 其中：
 
 - `-V 21T` 指定虚拟大小为 `21TB`，远大于所在 `pool` 的容量；
+- 创建 `backup` 或其他磁盘同理；
+
+然后在磁盘上创建文件系统：
+
+```bash
+sudo mkfs.ext4 /dev/resource/public
+```
+
+最后将磁盘挂载到指定挂载点：
+
+```bash
+sudo mount /dev/resource/public /samba/public
+```
 
 
 
@@ -102,6 +115,35 @@ sudo rm -rf <MOUNT_POINT>
 ```
 
 # 数据备份
+
+切换到 root 账户，通过：
+
+```bash
+contab -e
+```
+
+打开 crontab 的编辑界面，添加如下任务：
+
+```contab
+0 0 */1 * * /samba/.backup/backup.sh
+```
+
+即每天执行一次 `/samba/.backup/backup.sh` 脚本，脚本内容为：
+
+```sh
+#!/bin/bash
+  
+SMB_DIR=/samba
+BACKUP_DIR=$SMB_DIR/.backup
+
+rsync -av \
+        --exclude '.*' \
+        --exclude 'public' \
+        --exclude '*/resource' \
+        $SMB_DIR $BACKUP_DIR
+```
+
+也即将所有非 `resource` 的数据增量同步到 `.backup` 中。
 
 # 参考文档
 
