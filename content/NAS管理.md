@@ -90,7 +90,9 @@ sudo rm -rf <MOUNT_POINT>
 
 # 数据备份
 
+# 参考文档
 
+- [RedHat文档](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/6/html/logical_volume_manager_administration/thinly_provisioned_volume_creation)
 
 # 相关文章
 
