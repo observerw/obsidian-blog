@@ -70,7 +70,7 @@ thin_pool_autoextend_percent = 20
 sudo umount /dev/mapper/<VG_NAME>-<LV_NAME>
 ```
 
-若执行后报错“设备忙”等，请确保当前没有进程在使用该磁盘挂载点中包含的文件。可以通过如下命令找出这些进程并合适的解决掉它们：
+若执行后报错“设备忙”等，说明有进程在使用该磁盘挂载点中包含的文件。可以通过 `lsof` 找出这些进程并合适的解决掉它们：
 
 ```bash
 sudo lsof +D <MOUNT_POINT>
