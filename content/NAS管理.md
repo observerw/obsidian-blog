@@ -4,6 +4,11 @@ aliases:
 tags: 
 draft: true
 ---
+
+# 规划
+
+
+
 # 硬盘初始化
 
 首先 `lsblk` 看看现有的硬盘：
@@ -31,26 +36,20 @@ sud pvcreate /dev/sd{a,b,c,d}
 #   Physical volume "/dev/sda" successfully created...
 ```
 
+
+# 数据盘管理
+
 创建名为 `data` 和 `resource` 的 VG Group：
 
 ```
 sudo vgcreate data /dev/sda
-sudo vgcreate resource /dev/sd{b,c,d}
 ```
 
-随后在每个 VG Group 上创建相应的 thin pool：
+创建 thin pool：
 
 ```bash
 sudo lvcreate -c 64K -L 4T -T data/pool
-sudo lvcreate --stripes 3 --stripesize 128 -c 128K -L 10T -T resource/pool
 ```
-
-其中：
-
-- `--stripes 3` 指定使用 3 个条带设备读写；
--  `-c 64K` 指定了分块大小为 `64KB`，否则会显示 `Pool zeroing and 512,00 KiB large chunk size slows down thin provisioning.`；
--  `-L 1024G` 指定了初始大小为 `1T`。Thin pool 是在物理空间中创建的，所以必须指定一个大小；但由于 thin pool 有[[#Thin Pool 自动扩容|自动扩容机制]]，所以初始大小无所谓；
-- `-T data/pool` 指定了在 `data` VG group 下创建名为 `pool` 的逻辑磁盘，也即 thin pool；
 
 随后即可在对应的 `pool` 上创建任意容量大小的 LV。先创建 `public` 磁盘：
 
@@ -75,13 +74,26 @@ sudo mkfs.ext4 /dev/resource/public
 sudo mount /dev/resource/public /samba/public
 ```
 
-# 数据盘管理
-
-
-
 # 资源盘管理
 
+创建名为 `resource` 的 VG Group：
 
+```
+sudo vgcreate resource /dev/sd{b,c,d}
+```
+
+创建 thin pool：
+
+```bash
+sudo lvcreate --stripes 3 --stripesize 128 -c 128K -L 10T -T resource/pool
+```
+
+其中：
+
+- `--stripes 3` 指定使用 3 个条带设备读写；
+-  `-c 64K` 指定了分块大小为 `64KB`，否则会显示 `Pool zeroing and 512,00 KiB large chunk size slows down thin provisioning.`；
+-  `-L 1024G` 指定了初始大小为 `1T`。Thin pool 是在物理空间中创建的，所以必须指定一个大小；但由于 thin pool 有[[#Thin Pool 自动扩容|自动扩容机制]]，所以初始大小无所谓；
+- `-T data/pool` 指定了在 `data` VG group 下创建名为 `pool` 的逻辑磁盘，也即 thin pool；
 
 # Thin Pool 自动扩容
 
@@ -159,6 +171,10 @@ rsync -av \
 - 用户只能删除自己写入的数据，而不能操作其他数据；
 
 这可以使用 Sticky Bit 权限位实现。
+
+# Samba 用户管理
+
+
 
 # 参考文档
 
