@@ -145,6 +145,15 @@ rsync -av \
 
 也即将所有非 `resource` 的数据增量同步到 `.backup` 中。
 
+# 共享文件夹权限管理
+
+由于 `public` 文件夹是所有用户的公共文件夹，因此需要做一些特殊的权限处理，期望能够做到：
+
+- 所有用户均能够向其中写入数据并读取其中的数据；
+- 用户只能删除自己写入的数据，而不能操作其他数据；
+
+
+
 # 参考文档
 
 - [RedHat文档](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/6/html/logical_volume_manager_administration/thinly_provisioned_volume_creation)
