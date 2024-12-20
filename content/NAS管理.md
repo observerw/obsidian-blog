@@ -75,6 +75,12 @@ sudo mkfs.ext4 /dev/resource/public
 sudo mount /dev/resource/public /samba/public
 ```
 
+# 数据盘管理
+
+
+
+# 资源盘管理
+
 
 
 # Thin Pool 自动扩容
@@ -152,7 +158,7 @@ rsync -av \
 - 所有用户均能够向其中写入数据并读取其中的数据；
 - 用户只能删除自己写入的数据，而不能操作其他数据；
 
-
+这可以使用 Sticky Bit 权限位实现。
 
 # 参考文档
 
