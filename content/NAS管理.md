@@ -49,7 +49,7 @@ sudo wipefs --all /dev/sd{a,b,c,d}
 随后就可以创建物理磁盘了：
 
 ```bash
-sud pvcreate /dev/sd{a,b,c,d}
+sudo pvcreate /dev/sd{a,b,c,d}
 
 #   Physical volume "/dev/sda" successfully created...
 ```
