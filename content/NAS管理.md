@@ -29,7 +29,7 @@ NAS 上配备了 4 块 HDD，每块的容量为 `7.3 TB`。
 
 1. 将四块硬盘中的一块分配给重要数据，将剩下三块全部分配给不重要数据； ^design-1
 2. 定期将重要数据增量备份到不重要数据的硬盘中； ^design-2
-3. 三块硬盘并行写入，增加不重要数据写入速度； ^design-3
+3. 三块硬盘并行写入，增加数据写入速度； ^design-3
 4. 不去为每个 NAS 用户预先分配固定的空间，而是让每个用户都认为自己独占所有存储空间（类似于虚拟内存）； ^design-4
 5. 通过文件共享系统的权限系统实现权限管理； ^design-5
 
@@ -111,7 +111,7 @@ sudo lvcreate --stripes 3 --stripesize 128 -c 128K -L 10T -T resource/pool
 
 其中：
 
-- `--stripes 3 --stripesize 128` 指定使用 3 个条带设备读写，条带大小 `128 KB` [[#^design-3]]；
+- `--stripes 3 --stripesize 128` 指定使用 3 个条带设备读写，条带大小 `128 KB`，这实现了[[#^design-3|设计3]]；
 -  `-L 10T` 指定了初始大小为 ` 10 TB`。Thin pool 是在物理空间中创建的，所以必须指定一个大小；但由于 thin pool 有[[#Thin Pool 自动扩容|自动扩容机制]]，所以初始大小无所谓；
 
 随后即可在对应的 `pool` 上创建任意容量大小的 LV。先创建名为 `public` LV 作为公共空间：
@@ -193,7 +193,7 @@ contab -e
 0 0 */1 * * /samba/.backup/backup.sh
 ```
 
-即每天执行一次 `/samba/.backup/backup.sh` 脚本 [[#^design-2]]，脚本内容为：
+即每天执行一次 `/samba/.backup/backup.sh` 脚本，脚本内容为：
 
 ```bash
 #!/bin/bash
@@ -210,7 +210,7 @@ rsync -av \
 	$SMB_DIR $BACKUP_DIR
 ```
 
-也即将所有非 `resource` 的数据增量同步到 `.backup` 中。
+也即将所有非 `resource` 的数据增量同步到 `.backup` 中，这实现了[[#^design-2|设计2]]。
 
 # 共享文件夹权限管理
 
@@ -297,12 +297,135 @@ testparm -s
 # 应该能够在打印出的内容中找到 conf.d 中包含的内容
 ```
 
-每个用户对应的配置文件形如 [[#^design-5]]：
+每个用户对应的配置文件形如：
 
 ```conf
 [<USERNAME>]
 path = /samba/<USERNAME>
 ```
+
+这完成了[[#^design-5|设计5]]。
+
+# 完整脚本
+
+## `create-samba-user.sh`
+
+```bash
+#!/bin/sh
+set -e
+
+if [ -z "$1" ]; then
+    echo "Usage: $0 <username>"
+    exit 1
+fi
+
+USERNAME=$1
+
+INITIAL_PASSWORD=$(openssl rand -base64 12)
+
+if [[ ! "$USERNAME" =~ ^[a-zA-Z0-9_]+$ || $USERNAME == "public" ]]; then
+    echo "Invalid username. Only alphanumeric characters and underscores (exclude 'public') are allowed."
+    exit 1
+fi
+
+echo "Validating username: $USERNAME - OK"
+
+if id "$USERNAME" &>/dev/null; then
+    echo "User $USERNAME already exists, skipping creation."
+else
+    echo "User $USERNAME does not exist - Proceeding to create user."
+    useradd -M "$USERNAME"
+    echo "$USERNAME:$INITIAL_PASSWORD" | chpasswd
+fi
+
+create_logical_volumes() {
+    local VG_NAME=$1
+    local MOUNT_POINT=$2
+
+    LV_NAME=$USERNAME
+    LV_PATH=/dev/$VG_NAME/$LV_NAME
+
+    POOLNAME=$VG_NAME/pool
+    
+    if [ -f /dev/mapper/$VG_NAME-$LV_NAME ]; then
+        echo "Logical volume $LV_NAME already exists, skipping creation."
+        return
+    fi
+
+    lvcreate -V 20T -T $POOLNAME -n $LV_NAME
+    mkfs.ext4 $LV_PATH
+    mkdir -p "$MOUNT_POINT" && mount $LV_PATH "$MOUNT_POINT"
+    echo "$MOUNT_POINT initialized."
+}
+
+SAMBA_DIR=/samba
+USER_DIR=$SAMBA_DIR/$USERNAME
+RESOURCE_DIR=$USER_DIR/resource
+
+create_logical_volumes "data" "$USER_DIR"
+create_logical_volumes "resource" "$RESOURCE_DIR"
+
+ln -s /samba/public $USER_DIR/public
+
+echo "Setting ownership and permissions for $USER_DIR..."
+chown -R "$USERNAME:$USERNAME" "$USER_DIR"
+chmod -R 700 "$USER_DIR"
+
+echo "Creating Samba configuration..."
+
+SMB_DIR=/etc/samba
+SMB_CONF_DIR=$SMB_DIR/conf.d
+USER_CONF=$SMB_CONF_DIR/${USERNAME}.conf
+
+if [ -f $USER_CONF ]; then
+    echo "Samba configuration for $USERNAME already exists. Skipping."
+    return
+else
+    (echo "$INITIAL_PASSWORD"; echo "$INITIAL_PASSWORD") | smbpasswd -a "$USERNAME"
+    cat $USER_DIR/hello.txt
+
+    cat <<EOL > $USER_CONF
+[$USERNAME]
+path = $USER_DIR
+available = yes
+browseable = yes
+writable = yes
+valid users = $USERNAME
+EOL
+
+    INCLUDES_CONF=$SMB_DIR/includes.conf
+    echo "Updating $INCLUDES_CONF to include user configuration..."
+    ls $SMB_CONF_DIR/* | sed -e 's/^/include = /' > $INCLUDES_CONF
+
+    SMB_CONF=$SMB_DIR/smb.conf
+    testparm $SMB_CONF
+    systemctl restart smbd
+
+    echo "Samba configuration for $USERNAME created successfully."
+fi
+
+echo "User $USERNAME created successfully."
+
+```
+
+- 请根据实际情况替换 `SAMBA_DIR` 对应的路径；
+
+## `backup.sh`
+
+```bash
+#!/bin/bash
+
+SMB_DIR=/samba
+BACKUP_DIR=$SMB_DIR/.backup
+
+rsync -av \
+	--exclude '.*' \
+	--exclude 'public' \
+	--exclude '*/resource' \
+	$SMB_DIR $BACKUP_DIR
+```
+
+- 请根据实际情况替换 `SMB_DIR` 和 `BACKUP_DIR` 的值；
 
 # 参考文档
 
