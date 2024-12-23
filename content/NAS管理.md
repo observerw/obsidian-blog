@@ -7,38 +7,48 @@ draft: false
 
 # 规划
 
-NAS 上配备了 4 块 HDD，每块的容量为 `7.3TB`。
+NAS 上配备了 4 块 HDD，每块的容量为 `7.3 TB`。
 
-我们可以简单的认为将 NAS 中存储的数据根据重要性归类为：
+我们可以简单的将 NAS 中存储的数据根据**重要性**归类为：
 
-- 重要数据 `data`（代码、实验数据、照片等）；
-- 不重要数据 `resource`（电影等可重下载资源）；
+- 重要数据 `data`，如代码、实验数据、照片等；
+- 不重要数据 `resource`，如电影等可重下载资源；
 
-数据的特征为：
+这两种数据的特征为：
 
 - 重要数据：必须要备份；主要是随机访问；对容量要求、读写速度要求不高；
 - 不重要数据：不必备份；主要是顺序访问；对容量要求、读写速度要求高；
 
+此外，**该 NAS 将会被多个用户使用**：
+
+- 每个用户需要有自己的私有目录，同时能够访问到公共目录；
+- 用户存储空间的公平性不太重要（你多存一点我少存一点都无所谓）；
+- 但可扩展性比较重要（比如未来可能新加入一个用户等）；
+
 所以比较合理的设计为：
 
-- 将四块硬盘中的一块分配给重要数据，将剩下三块全部分配给不重要数据；
-- 定期将重要数据增量备份到不重要数据的硬盘中；
-- 三块硬盘并行写入，增加不重要数据写入速度；
+1. 将四块硬盘中的一块分配给重要数据，将剩下三块全部分配给不重要数据； ^design-1
+2. 定期将重要数据增量备份到不重要数据的硬盘中； ^design-2
+3. 三块硬盘并行写入，增加不重要数据写入速度； ^design-3
+4. 不去为每个 NAS 用户预先分配固定的空间，而是让每个用户都认为自己独占所有存储空间（类似于虚拟内存）； ^design-4
+5. 通过文件共享系统的权限系统实现权限管理； ^design-5
 
 # 创建物理硬盘
 
 首先 `lsblk` 看看现有的硬盘：
 
-```
-sda      8:0    0   7.3T  0 disk 
-sdb      8:16   0   7.3T  0 disk 
-sdc      8:32   0   7.3T  0 disk 
-sdd      8:48   0   7.3T  0 disk
+```bash
+sudo lsblk
+
+# sda      8:0    0   7.3T  0 disk 
+# sdb      8:16   0   7.3T  0 disk 
+# sdc      8:32   0   7.3T  0 disk 
+# sdd      8:48   0   7.3T  0 disk
 ```
 
 可以看到四块硬盘分别名为 `sd{a,b,c,d}`，对应的路径自然也就为 `/dev/sd{a,b,c,d}`。
 
- 将现有的 ` signature ` 全部擦除掉：
+ 将硬盘上现有的 ` signature ` 全部擦除掉（当然，重要数据先备份）：
 
 ```bash
 sudo wipefs --all /dev/sd{a,b,c,d}
@@ -56,23 +66,27 @@ sudo pvcreate /dev/sd{a,b,c,d}
 
 通过 `pvs`（或者更详细的 `pvdisplay`）查看创建情况：
 
-```
-PV         VG       Fmt  Attr PSize  PFree 
-/dev/sda   data     lvm2 a--  <7.28t <3.27t
-/dev/sdb   resource lvm2 a--  <7.28t <3.94t
-/dev/sdc   resource lvm2 a--  <7.28t  3.94t
-/dev/sdd   resource lvm2 a--  <7.28t <3.94t
+```bash
+sudo pvs
+
+# PV         VG       Fmt  Attr PSize  PFree 
+# /dev/sda   data     lvm2 a--  <7.28t <3.27t
+# /dev/sdb   resource lvm2 a--  <7.28t <3.94t
+# /dev/sdc   resource lvm2 a--  <7.28t  3.94t
+# /dev/sdd   resource lvm2 a--  <7.28t <3.94t
 ```
 
 # 数据盘管理
 
-创建名为 `data` 的 VG Group：
+我们知道 LVM 分为物理磁盘 PV，磁盘组 VG 和逻辑磁盘 LV 三个抽象层次（详见 [LVM 介绍](https://ubuntu.com/server/docs/about-logical-volume-management-lvm)）。LV 必须依附于某个 VG，为此需要首先为 `data` 和 `resource` 分别创建 VG。
+
+使用 `vgcreate` 创建名为 ` data ` 的 VG [[#^design-1]]：
 
 ```
 sudo vgcreate data /dev/sda
 ```
 
-创建 thin pool：
+随后在其上创建 thin pool [[#^design-4]]：
 
 ```bash
 sudo lvcreate -c 64K -L 4T -T data/pool
@@ -97,7 +111,7 @@ sudo lvcreate --stripes 3 --stripesize 128 -c 128K -L 10T -T resource/pool
 
 其中：
 
-- `--stripes 3 --stripesize 128` 指定使用 3 个条带设备读写，条带大小 `128 KB`；
+- `--stripes 3 --stripesize 128` 指定使用 3 个条带设备读写，条带大小 `128 KB` [[#^design-3]]；
 -  `-L 10T` 指定了初始大小为 ` 10 TB`。Thin pool 是在物理空间中创建的，所以必须指定一个大小；但由于 thin pool 有[[#Thin Pool 自动扩容|自动扩容机制]]，所以初始大小无所谓；
 
 随后即可在对应的 `pool` 上创建任意容量大小的 LV。先创建名为 `public` LV 作为公共空间：
@@ -179,7 +193,7 @@ contab -e
 0 0 */1 * * /samba/.backup/backup.sh
 ```
 
-即每天执行一次 `/samba/.backup/backup.sh` 脚本，脚本内容为：
+即每天执行一次 `/samba/.backup/backup.sh` 脚本 [[#^design-2]]，脚本内容为：
 
 ```bash
 #!/bin/bash
@@ -281,6 +295,13 @@ include = /etc/samba/includes.conf
 testparm -s
 
 # 应该能够在打印出的内容中找到 conf.d 中包含的内容
+```
+
+每个用户对应的配置文件形如 [[#^design-5]]：
+
+```conf
+[<USERNAME>]
+path = /samba/<USERNAME>
 ```
 
 # 参考文档
