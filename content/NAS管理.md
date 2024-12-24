@@ -374,7 +374,7 @@ sudo mount \
 ## `create-samba-user.sh`
 
 ```bash
-#!/bin/sh
+#!/bin/bash
 set -e
 
 if [ -z "$1" ]; then
@@ -383,7 +383,6 @@ if [ -z "$1" ]; then
 fi
 
 USERNAME=$1
-
 INITIAL_PASSWORD=$(openssl rand -base64 12)
 
 if [[ ! "$USERNAME" =~ ^[a-zA-Z0-9_]+$ || $USERNAME == "public" ]]; then
@@ -409,8 +408,8 @@ create_logical_volumes() {
     LV_PATH=/dev/$VG_NAME/$LV_NAME
 
     POOLNAME=$VG_NAME/pool
-    
-    if [ -f /dev/mapper/$VG_NAME-$LV_NAME ]; then
+
+    if [ -e "/dev/mapper/$VG_NAME-$LV_NAME" ]; then
         echo "Logical volume $LV_NAME already exists, skipping creation."
         return
     fi
@@ -428,7 +427,10 @@ RESOURCE_DIR=$USER_DIR/resource
 create_logical_volumes "data" "$USER_DIR"
 create_logical_volumes "resource" "$RESOURCE_DIR"
 
-ln -s /samba/public $USER_DIR/public
+
+if [ ! -e $USER_DIR/public ]; then
+    ln -s /samba/public $USER_DIR/public
+fi
 
 echo "Setting ownership and permissions for $USER_DIR..."
 chown -R "$USERNAME:$USERNAME" "$USER_DIR"
@@ -442,9 +444,9 @@ USER_CONF=$SMB_CONF_DIR/${USERNAME}.conf
 
 if [ -f $USER_CONF ]; then
     echo "Samba configuration for $USERNAME already exists. Skipping."
-    return
 else
     (echo "$INITIAL_PASSWORD"; echo "$INITIAL_PASSWORD") | smbpasswd -a "$USERNAME"
+    echo "Initial Password: $INITIAL_PASSWORD" > $USER_DIR/hello.txt
     cat $USER_DIR/hello.txt
 
     cat <<EOL > $USER_CONF
@@ -468,7 +470,6 @@ EOL
 fi
 
 echo "User $USERNAME created successfully."
-
 ```
 
 - 请根据实际情况替换 `SAMBA_DIR` 对应的路径；
