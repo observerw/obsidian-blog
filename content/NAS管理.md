@@ -76,17 +76,48 @@ sudo pvs
 # /dev/sdd   resource lvm2 a--  <7.28t <3.94t
 ```
 
+# 挂载点设计
+
+ 我们可以在根目录下创建一个专门的目录 `/samba` 用于存储所有的数据：
+
+```bash
+sudo mkdir /samba
+```
+
+我们期望的目录结构为：
+
+```
+/samba
+├── public
+├── .backup
+|	├── backup.sh
+|	└── <USER1>
+└── <USER1>
+|	├── public -> /samba/public
+|	└── resource
+└── <USER2>
+	├── ...
+```
+
+- `/samba/public`：公用目录，属于 `resource`；
+	- 该目录会被符号链接到每个用户目录的 `public` 上；
+- `/samba/.backup`：备份目录，用于当 `data` 中数据损坏时恢复数据，属于 ` resource `；
+- `/samba/<USERNAME>`：用户私有目录；
+	- **该文件夹下的内容默认为重要数据**，属于 `data`， 会进行备份；
+	- `resource`：用户私有不重要数据，属于 `resource`， 这些数据不会被备份；
+	- `public`：用户公用不重要数据，属于 `resource`；
+
 # 数据盘管理
 
 我们知道 LVM 分为物理磁盘 PV，磁盘组 VG 和逻辑磁盘 LV 三个抽象层次（详见 [LVM 介绍](https://ubuntu.com/server/docs/about-logical-volume-management-lvm)）。LV 必须依附于某个 VG，为此需要首先为 `data` 和 `resource` 分别创建 VG。
 
-使用 `vgcreate` 创建名为 ` data ` 的 VG [[#^design-1]]：
+使用 `vgcreate` 创建名为 ` data ` 的 VG （[[#^design-1|设计1]]）：
 
 ```
 sudo vgcreate data /dev/sda
 ```
 
-随后在其上创建 thin pool [[#^design-4]]：
+随后在其上创建 thin pool （[[#^design-4|设计4]]）：
 
 ```bash
 sudo lvcreate -c 64K -L 4T -T data/pool
@@ -111,7 +142,7 @@ sudo lvcreate --stripes 3 --stripesize 128 -c 128K -L 10T -T resource/pool
 
 其中：
 
-- `--stripes 3 --stripesize 128` 指定使用 3 个条带设备读写，条带大小 `128 KB`，这实现了[[#^design-3|设计3]]；
+- `--stripes 3 --stripesize 128` 指定使用 3 个条带设备读写，条带大小 `128 KB`（[[#^design-3|设计3]]）；
 -  `-L 10T` 指定了初始大小为 ` 10 TB`。Thin pool 是在物理空间中创建的，所以必须指定一个大小；但由于 thin pool 有[[#Thin Pool 自动扩容|自动扩容机制]]，所以初始大小无所谓；
 
 随后即可在对应的 `pool` 上创建任意容量大小的 LV。先创建名为 `public` LV 作为公共空间：
@@ -150,34 +181,6 @@ thin_pool_autoextend_percent = 20
 该两项设置代表了当 thin pool 的容量占用达到了 80%时，将自动扩容 20%。
 
 即便如此，物理硬盘的空间仍然是有限的，所以还是需要定期检查存储空间剩余容量。
-
-# 删除逻辑磁盘
-
-首先卸载位于 `/dev/mapper` 的磁盘：
-
-```bash
-sudo umount /dev/mapper/<VG_NAME>-<LV_NAME>
-
-# 比如 resource/public对应的路径为 /dev/mapper/resource-public
-```
-
-若执行后报错“设备忙”等，说明有进程在使用该磁盘挂载点中包含的文件，可以通过 `lsof` 找出这些进程并合适的解决掉它们：
-
-```bash
-sudo lsof +D <MOUNT_POINT>
-```
-
-然后即可删除逻辑磁盘：
-
-```bash
-sudo lvremove <VG_NAME>/<LV_NAME> -y
-```
-
-如有必要，删除该逻辑磁盘的挂载点（不删除的话则该挂载点中的数据将默认迁移到其父目录所用磁盘中）：
-
-```bash
-sudo rm -rf <MOUNT_POINT>
-```
 
 # 数据备份
 
@@ -490,6 +493,35 @@ rsync -av \
 ```
 
 - 请根据实际情况替换 `SMB_DIR` 和 `BACKUP_DIR` 的值；
+
+
+# 附录 2：如何删除逻辑磁盘
+
+首先卸载位于 `/dev/mapper` 的磁盘：
+
+```bash
+sudo umount /dev/mapper/<VG_NAME>-<LV_NAME>
+
+# 比如 resource/public对应的路径为 /dev/mapper/resource-public
+```
+
+若执行后报错“设备忙”等，说明有进程在使用该磁盘挂载点中包含的文件，可以通过 `lsof` 找出这些进程并合适的解决掉它们：
+
+```bash
+sudo lsof +D <MOUNT_POINT>
+```
+
+然后即可删除逻辑磁盘：
+
+```bash
+sudo lvremove <VG_NAME>/<LV_NAME> -y
+```
+
+如有必要，删除该逻辑磁盘的挂载点（不删除的话则该挂载点中的数据将默认迁移到其父目录所用磁盘中）：
+
+```bash
+sudo rm -rf <MOUNT_POINT>
+```
 
 # 参考文档
 
