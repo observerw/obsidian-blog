@@ -2,7 +2,7 @@
 title: 
 aliases: 
 tags: 
-draft: false
+draft: true
 ---
 - IC 设计流程中，EDA 工具起到了必不可少的作用；
 - 设计流程中，每一层到下一层都是一对多的关系；
