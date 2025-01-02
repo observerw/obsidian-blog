@@ -1,7 +1,8 @@
 ---
 title: 
 aliases: 
-tags: 
+tags:
+  - 技术
 draft: false
 ---
 
@@ -213,7 +214,7 @@ rsync -av \
 	$SMB_DIR $BACKUP_DIR
 ```
 
-也即将所有非 `resource` 的数据增量同步到 `.backup` 中，这实现了[[#^design-2|设计2]]。
+也即将所有非 `resource` 的数据增量同步到 `.backup` 中（[[#^design-2|设计2]]）。
 
 # 共享文件夹权限管理
 
@@ -222,7 +223,7 @@ rsync -av \
 - 所有用户均能够向其中写入数据并读取其中的数据；
 - 用户只能删除自己写入的数据，而不能操作其他数据；
 
-这可以使用 [Sticky Bit 权限位](https://en.wikipedia.org/wiki/Sticky_bit)实现。当某个目录的Sticky Bit 被设置后，其中的文件智能够被目录所有者、文件所有者和 root 用户删除。
+这可以使用 [Sticky Bit 权限位](https://en.wikipedia.org/wiki/Sticky_bit)实现。当某个目录的Sticky Bit 被设置后，其中的文件对所有用户可读（当然，前提是你正确设置了其他权限位），但只能够被目录所有者、文件所有者和 root 用户修改和删除。
 
 通过如下命令设置用户可对 `public` 目录完全管理，同时带有 Sticky Bit：
 
@@ -309,7 +310,11 @@ path = /samba/<USERNAME>
 
 这完成了[[#^design-5|设计5]]。
 
-# Samba 硬盘挂载
+# 添加新用户
+
+在上述一切准备过程完毕后，
+
+# 附录 1：Samba 硬盘挂载
 
 ## Ubuntu 玩家
 
@@ -372,7 +377,7 @@ sudo mount \
 - 你的家族有精神病史吗？
 - 我有个叔叔买了MacBook。
 
-# 附录 1：完整脚本
+# 附录 2：完整脚本
 
 ## `create-samba-user.sh`
 
@@ -520,7 +525,7 @@ rsync -av \
 - 请根据实际情况替换 `SMB_DIR` 和 `BACKUP_DIR` 的值；
 
 
-# 附录 2：如何删除逻辑磁盘
+# 附录 3：如何删除逻辑磁盘
 
 首先卸载位于 `/dev/mapper` 的磁盘：
 
