@@ -312,7 +312,7 @@ path = /samba/<USERNAME>
 
 # 添加新用户
 
-
+我们当然不希望每添加一个新用户就重复一遍上述流程，所以可以通过[[#`/usr/local/bin/samba-user.sh`|脚本]]实现上述流程。
 
 # 持久化挂载
 
@@ -381,9 +381,9 @@ sudo mount \
 - 你的家族有精神病史吗？
 - 我有个叔叔买了MacBook。
 
-# 附录 2：完整脚本
+# 附录 2：脚本
 
-## `create-samba-user.sh`
+## `/usr/local/bin/samba-user.sh`
 
 ```bash
 #!/bin/bash
@@ -511,7 +511,145 @@ echo "User $USERNAME created successfully."
 > 8. **完成提示**：
 >     - 输出用户创建成功的提示信息。
 
-## `backup.sh`
+## `/usr/local/bin/sync-fstab.sh`
+
+```python
+#!/usr/bin/env python3
+import argparse
+import os
+import re
+import shutil
+import subprocess as sp
+from pathlib import Path
+
+BLKID_RE = re.compile(r'(/dev/mapper/\S+):\s+UUID="([^"]+)"')
+FSTAB_PATH = Path('/etc/fstab')
+
+
+def check_root():
+    if os.geteuid() != 0:
+        print("This script must be run as root")
+        exit(1)
+
+
+def get_disk_to_mount_mapping():
+    # 执行df命令获取磁盘挂载信息
+    df_output = sp.check_output(["df", "--output=source,target"], text=True)
+
+    # 过滤/dev/mapper设备并创建映射
+    disk_to_mount = {}
+    for line in df_output.splitlines():
+        if "/dev/mapper" in line:
+            source, target = line.strip().split()
+            disk_to_mount[source] = target
+
+    return disk_to_mount
+
+
+def get_disk_to_uuid_mapping():
+    # 执行blkid命令获取UUID信息
+    blkid_output = sp.check_output(["blkid", "-s", "UUID"], text=True)
+
+    # 解析blkid输出并创建映射
+    disk_to_uuid = {}
+    for line in blkid_output.splitlines():
+        if "/dev/mapper" in line:
+            # 使用正则表达式提取设备路径和UUID
+            match = re.match(BLKID_RE, line)
+            if match:
+                device, uuid = match.groups()
+                disk_to_uuid[device] = uuid
+
+    return disk_to_uuid
+
+
+def read_fstab():
+    """读取fstab文件并删除标记的行"""
+    lines = FSTAB_PATH.read_text().splitlines()
+    cleaned_lines = []
+
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        if line.strip().startswith("#sync"):
+            i += 2  # 跳过注释行和其下一行
+        else:
+            cleaned_lines.append(line)
+            i += 1
+
+    return "\n".join(cleaned_lines)
+
+
+def sync_fstab(disk_to_mount, disk_to_uuid):
+    """生成新的fstab条目"""
+    entries = []
+    for disk, mount in disk_to_mount.items():
+        if disk in disk_to_uuid:
+            uuid = disk_to_uuid[disk]
+            entries.extend(
+                (
+                    "#sync - auto generated for {}\n".format(disk),
+                    "UUID={} {} ext4 defaults 0 0\n".format(uuid, mount),
+                )
+            )
+    return "".join(entries)
+
+
+def write_fstab(content):
+    """写入新的fstab内容"""
+    shutil.copy(FSTAB_PATH, FSTAB_PATH.with_suffix(".backup"))
+    FSTAB_PATH.write_text("".join(content))
+
+
+def recover_fstab():
+    """从备份文件恢复fstab"""
+    backup_path = FSTAB_PATH.with_suffix(".backup")
+    if not backup_path.exists():
+        print("No backup file found")
+        exit(1)
+    shutil.copy(backup_path, FSTAB_PATH)
+    print("Recovered fstab from backup successfully")
+
+
+def main():
+    check_root()
+    parser = argparse.ArgumentParser(description="Sync or clear fstab entries")
+    parser.add_argument(
+        "-c",
+        "--clear",
+        action="store_true",
+        help="Only clear sync entries without generating new ones",
+    )
+    parser.add_argument(
+        "-r",
+        "--recover",
+        action="store_true",
+        help="Recover fstab from backup file",
+    )
+    args = parser.parse_args()
+
+    if args.recover:
+        recover_fstab()
+        return
+
+    content = read_fstab()
+
+    if not args.clear:
+        disk_to_mount = get_disk_to_mount_mapping()
+        disk_to_uuid = get_disk_to_uuid_mapping()
+        sync_content = sync_fstab(disk_to_mount, disk_to_uuid)
+        content += f"\n{sync_content}"
+        print("Updated /etc/fstab successfully")
+
+    write_fstab(fstab)
+    print("Backup saved as /etc/fstab.backup")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## `/samba/.backup/backup.sh`
 
 ```bash
 #!/bin/bash
