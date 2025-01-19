@@ -39,7 +39,7 @@ NAS 上配备了 4 块 HDD，每块的容量为 `7.3 TB`。
 首先 `lsblk` 看看现有的硬盘：
 
 ```bash
-sudo lsblk
+lsblk
 
 # sda      8:0    0   7.3T  0 disk 
 # sdb      8:16   0   7.3T  0 disk 
@@ -52,7 +52,7 @@ sudo lsblk
  将硬盘上现有的 ` signature ` 全部擦除掉（当然，重要数据先备份）：
 
 ```bash
-sudo wipefs --all /dev/sd{a,b,c,d}
+wipefs --all /dev/sd{a,b,c,d}
 
 # /dev/sda：8 个字节已擦除，位置偏移为 ...
 ```
@@ -60,7 +60,7 @@ sudo wipefs --all /dev/sd{a,b,c,d}
 随后就可以创建物理磁盘了：
 
 ```bash
-sudo pvcreate /dev/sd{a,b,c,d}
+pvcreate /dev/sd{a,b,c,d}
 
 #   Physical volume "/dev/sda" successfully created...
 ```
@@ -68,7 +68,7 @@ sudo pvcreate /dev/sd{a,b,c,d}
 通过 `pvs`（或者更详细的 `pvdisplay`）查看创建情况：
 
 ```bash
-sudo pvs
+pvs
 
 # PV         VG       Fmt  Attr PSize  PFree 
 # /dev/sda   data     lvm2 a--  <7.28t <3.27t
@@ -82,7 +82,7 @@ sudo pvs
  我们可以在根目录下创建一个专门的目录 `/samba` 用于存储所有的数据：
 
 ```bash
-sudo mkdir /samba
+mkdir /samba
 ```
 
 我们期望的目录结构为：
@@ -115,13 +115,13 @@ sudo mkdir /samba
 使用 `vgcreate` 创建名为 ` data ` 的 VG （[[#^design-1|设计1]]）：
 
 ```
-sudo vgcreate data /dev/sda
+vgcreate data /dev/sda
 ```
 
 随后在其上创建 thin pool （[[#^design-4|设计4]]）：
 
 ```bash
-sudo lvcreate -c 64K -L 4T -T data/pool
+lvcreate -c 64K -L 4T -T data/pool
 ```
 
 - `-c 64K` 将分块大小设置为相对较小的 `64KB`，否则会提示 `Pool zeroing and 512,00 KiB large chunk size slows down thin provisioning.`；
@@ -132,13 +132,13 @@ sudo lvcreate -c 64K -L 4T -T data/pool
 创建名为 `resource` 的 VG Group：
 
 ```
-sudo vgcreate resource /dev/sd{b,c,d}
+vgcreate resource /dev/sd{b,c,d}
 ```
 
 创建 thin pool：
 
 ```bash
-sudo lvcreate --stripes 3 --stripesize 128 -c 128K -L 10T -T resource/pool
+lvcreate --stripes 3 --stripesize 128 -c 128K -L 10T -T resource/pool
 ```
 
 其中：
@@ -149,7 +149,7 @@ sudo lvcreate --stripes 3 --stripesize 128 -c 128K -L 10T -T resource/pool
 随后即可在对应的 `pool` 上创建任意容量大小的 LV。先创建名为 `public` LV 作为公共空间：
 
 ```bash
-sudo lvcreate -V 21T -T resource/pool -n public
+lvcreate -V 21T -T resource/pool -n public
 ```
 
 其中：
@@ -159,13 +159,13 @@ sudo lvcreate -V 21T -T resource/pool -n public
 然后在磁盘上创建文件系统，使用 `ext4` 即可：
 
 ```bash
-sudo mkfs.ext4 /dev/resource/public
+mkfs.ext4 /dev/resource/public
 ```
 
 最后将磁盘挂载到指定挂载点：
 
 ```bash
-sudo mount /dev/resource/public /samba/public
+mount /dev/resource/public /samba/public
 ```
 
 大功告成。此时 `/samba/public` 目录就已经准备就绪了。创建 `backup` 或其他磁盘同理。
@@ -228,17 +228,17 @@ rsync -av \
 通过如下命令设置用户可对 `public` 目录完全管理，同时带有 Sticky Bit：
 
 ```bash
-sudo chmod 1777 /samba/public
+chmod 1777 /samba/public
 
 # 777代表读、写和执行权限，前面的1代表 Sticky Bit
 
-# 也可以通过 sudo chmod +t /samba/public 单独添加 Sticky Bit
+# 也可以通过 chmod +t /samba/public 单独添加 Sticky Bit
 ```
 
 同时为了防止非 root 用户持有 `public` 目录，将所有权转交给 root：
 
 ```bash
-sudo chown root /samba/public
+chown root /samba/public
 ```
 
 设置完目录后，在 `/etc/samba/conf.d/` 中新增 `public.conf`：
@@ -264,7 +264,7 @@ force user = nobody # 强制匿名访问，避免使用特定用户的权限问�
 首先新建一个配置文件夹：
 
 ```bash
-sudo mkdir /etc/samba/conf.d
+mkdir /etc/samba/conf.d
 ```
 
 用于存储额外的配置文件，如 `public` 目录对应的配置文件就可以是 `/etc/samba/conf.d/public.conf`。
@@ -325,19 +325,19 @@ path = /samba/<USERNAME>
 先安装必要的软件：
 
 ```bash
-sudo apt-get install cifs-utils smbclient
+apt-get install cifs-utils smbclient
 ```
 
 随后创建挂载点，一般可以挂载到 `/mnt/<USERNAME>` 上：
 
 ```bash
-sudo mkdir /mnt/<USERNAME>
+mkdir /mnt/<USERNAME>
 ```
 
 然后就可以挂载了，把文件系统类型指定为 `cifs`：
 
 ```bash
-sudo mount \
+mount \
 	-t cifs \
 	//<NAS_IP>/<USERNAME> \
 	/mnt/<USERNAME> \
@@ -672,7 +672,7 @@ rsync -av \
 首先卸载位于 `/dev/mapper` 的磁盘：
 
 ```bash
-sudo umount /dev/mapper/<VG_NAME>-<LV_NAME>
+umount /dev/mapper/<VG_NAME>-<LV_NAME>
 
 # 比如 resource/public对应的路径为 /dev/mapper/resource-public
 ```
@@ -680,19 +680,62 @@ sudo umount /dev/mapper/<VG_NAME>-<LV_NAME>
 若执行后报错“设备忙”等，说明有进程在使用该磁盘挂载点中包含的文件，可以通过 `lsof` 找出这些进程并合适的解决掉它们：
 
 ```bash
-sudo lsof +D <MOUNT_POINT>
+lsof +D <MOUNT_POINT>
 ```
 
 然后即可删除逻辑磁盘：
 
 ```bash
-sudo lvremove <VG_NAME>/<LV_NAME> -y
+lvremove <VG_NAME>/<LV_NAME> -y
 ```
 
 如有必要，删除该逻辑磁盘的挂载点（不删除的话则该挂载点中的数据将默认迁移到其父目录所用磁盘中）：
 
 ```bash
-sudo rm -rf <MOUNT_POINT>
+rm -rf <MOUNT_POINT>
+```
+
+## 附录 4：出现错误： `Activation of logical volume is prohibited`
+
+重启 NAS 后发现有逻辑磁盘没有挂载，运行如下命令检查挂载情况：
+
+```sh
+lvscan
+
+# INACTIVE '/dev/<VG_NAME>/pool'
+# ...
+```
+
+发现这些磁盘当前的状态是 `inactive`。
+
+尝试将这些磁盘的状态变更为 ` active `，遇到如下报错：
+
+```bash
+sudo vgchange -ay data
+
+# Activation of logical volume data/pool is prohibited while logical volume data/pool_tmeta is active.
+# ...
+```
+
+参考 [PVE论坛](https://forum.proxmox.com/threads/local-lvm-not-available-after-kernel-update-on-pve-7.97406/post-430860)，可能是由于 `thin_check` 占用时间太长导致的（不是很懂什么意思🤣），解决方法为：
+
+将 thin pool 的 `tmeta` 和 `tdata` 禁用：
+
+```bash
+lvchange -an <VG_NAME>/<TP_NAME>_tmeta
+lvchange -an <VG_NAME>/<TP_NAME>_tdata
+```
+
+随后重新激活相应的 VG：
+
+```bash
+lvchange -ay <VG_NAME>
+```
+
+最后重新挂载磁盘：
+
+```bash
+mount -a
 ```
 
 # 参考文档
