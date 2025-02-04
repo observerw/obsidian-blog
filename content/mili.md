@@ -5,6 +5,10 @@ tags:
 draft: false
 ---
 
+# Ga1ahad and Scientific Witchery
+
+![[Pasted image 20250204205913.png|300]]
+
 # Grown-Up's Paradise
 
 ![[Pasted image 20250204020915.png|300]]
@@ -30,7 +34,7 @@ TBD
 总结而言：
 
 - Momo 的声音是已臻化境的完美乐器，无须再强调其伟大；对人声和声感兴趣的话请尝试 [[#Sacramentum : Unaccompanied Hymn for Torino]]；
-- 使用小提琴作为独立的旋律线是 hamo 的风格；同时 hamo 也一直重视于电子音乐的创作，逐渐变的更加得心应手；这两种风格的交融向来是 hamo 为这个世界带来的礼物；如果感兴趣，强烈建议尝试 [[#Sl0t]]，是 hamo 创作这类风格的巅峰；
+- 电子与古典风格的交融向来是 hamo 为这个世界带来的礼物；典型作品有 [[#Sl0t]]，[[Imagined Flight]]，还有无需多言的 [[#Ga1ahad and Scientific Witchery]]
 - 在编曲结构上也基本继承了奇迹牛奶时代的遗风，没有采用常见的主副主副重复的结构，而是采用了类似于 [[#Ga1ahad and Scientific Witchery]] 类似的“级进”式结构，没有重复段，每一段都或承接或对比的在上一段的基础上进行发展，形成了丰富的聆听体验。
 
 
