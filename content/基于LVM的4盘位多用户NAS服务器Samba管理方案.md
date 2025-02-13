@@ -23,8 +23,8 @@ NAS 上配备了 4 块 HDD，每块的容量为 `7.3 TB`。
 此外，**该 NAS 将会被多个用户使用**：
 
 - 每个用户需要有自己的私有目录，同时能够访问到公共目录；
-- 用户存储空间的公平性不太重要（你多存一点我少存一点都无所谓）；
-- 但可扩展性比较重要（比如未来可能新加入一个用户等）；
+- 用户存储空间的公平性不太重要（你多存一点我少存一点都无所谓，反正空间大）；
+- 但可扩展性比较重要（未来可能加入新用户）；
 
 所以比较合理的设计为：
 
@@ -33,6 +33,8 @@ NAS 上配备了 4 块 HDD，每块的容量为 `7.3 TB`。
 3. 三块硬盘并行写入，增加数据写入速度； ^design-3
 4. 不去为每个 NAS 用户预先分配固定的空间，而是让每个用户都认为自己独占所有存储空间（类似于虚拟内存）； ^design-4
 5. 通过文件共享系统的权限系统实现权限管理； ^design-5
+
+我们将在接下来的步骤中依次实现这些设计。
 
 # 创建物理硬盘
 
@@ -79,7 +81,7 @@ pvs
 
 # 挂载点设计
 
- 我们可以在根目录下创建一个专门的目录 `/samba` 用于存储所有的数据：
+ 我们可以在根目录下创建一个专门的目录 `/samba` 作为挂载点：
 
 ```bash
 mkdir /samba
@@ -100,6 +102,8 @@ mkdir /samba
 	├── ...
 ```
 
+其中：
+
 - `/samba/public`：公用目录，属于 `resource`；
 	- 该目录会被符号链接到每个用户目录的 `public` 上；
 - `/samba/.backup`：备份目录，用于当 `data` 中数据损坏时恢复数据，属于 ` resource `；
@@ -110,6 +114,8 @@ mkdir /samba
 
 # 数据盘管理
 
+接下来我们开始使用 LVM 创建相应的磁盘。
+
 我们知道 LVM 分为物理磁盘 PV，磁盘组 VG 和逻辑磁盘 LV 三个抽象层次（详见 [LVM 介绍](https://ubuntu.com/server/docs/about-logical-volume-management-lvm)）。LV 必须依附于某个 VG，为此需要首先为 `data` 和 `resource` 分别创建 VG。
 
 使用 `vgcreate` 创建名为 ` data ` 的 VG （[[#^design-1|设计1]]）：
@@ -118,7 +124,7 @@ mkdir /samba
 vgcreate data /dev/sda
 ```
 
-随后在其上创建 thin pool （[[#^design-4|设计4]]）：
+随后在其上创建 [thin pool](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/6/html/logical_volume_manager_administration/thinly_provisioned_volume_creation) （[[#^design-4|设计4]]）：
 
 ```bash
 lvcreate -c 64K -L 4T -T data/pool
