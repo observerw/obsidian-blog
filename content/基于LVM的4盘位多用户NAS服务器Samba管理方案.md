@@ -229,7 +229,7 @@ rsync -av \
 - 所有用户均能够向其中写入数据并读取其中的数据；
 - 用户只能删除自己写入的数据，而不能操作其他数据；
 
-这可以使用 [Sticky Bit 权限位](https://en.wikipedia.org/wiki/Sticky_bit)实现。当某个目录的Sticky Bit 被设置后，其中的文件对所有用户可读（当然，前提是你正确设置了其他权限位），但只能够被目录所有者、文件所有者和 root 用户修改和删除。
+这实际上与 `/tmp` 目录是十分相似的，因此我们可以使用 [Sticky Bit 权限位](https://en.wikipedia.org/wiki/Sticky_bit)实现。当某个目录的Sticky Bit 被设置后，其中的文件对所有用户可读（当然，前提是你正确设置了其他权限位），但只能够被目录所有者、文件所有者和 root 用户修改和删除。
 
 通过如下命令设置用户可对 `public` 目录完全管理，同时带有 Sticky Bit：
 
