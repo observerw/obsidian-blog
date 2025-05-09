@@ -45,7 +45,7 @@ dependencies:
     specifier: ^4.0.3
     version: 4.0.3
   hast-util-to-html:
-    specifier: ^9.0.0
+    specifier: ^9.0.1
     version: 9.0.1
   hast-util-to-jsx-runtime:
     specifier: ^2.3.0
