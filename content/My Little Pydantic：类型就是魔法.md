@@ -7,23 +7,7 @@ draft: true
 
 Pydantic 作为 Typed Python 中的明星项目，使用了不少类型相关的黑魔法😅。
 
-# 将魔法据为己有
-
-你可能会说：我已经知道了所谓的类型魔法不过是使用 `__class_getitem__` 而已，我已经迫不及待要手搓轮子了！
-
-但我们内心深处其实都认同不要重复造轮子原则，所以最简单的方法还是等待 Pydantic 创建完 concrete model 后，将 model 中的 `annotation` 字段提取出来：
-
-```python
-class TypeWrapper[T](RootModel[T]):
-    root: T
-
-    @classmethod
-    def type(cls) -> type[T]:
-        assert (anno := cls.model_fields["root"].annotation)
-        return anno
-```
-
-# 有没有更通用的方法？
+# 有没有通用的方法？
 
 有的兄弟，有的。让我们来设计一个支持任意层类继承的 TypeVar 解析方法。
 
