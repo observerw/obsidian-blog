@@ -9,8 +9,6 @@ draft: true
 
 # Racing Mount Pleasant
 
-
-
+F**king fantastic.
 
 # 相关文章
-
